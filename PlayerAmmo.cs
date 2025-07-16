@@ -1,25 +1,35 @@
 using UnityEngine;
 
-public class AdrenalineSystem : MonoBehaviour
+public class PlayerAmmo : MonoBehaviour
 {
-    public float adrenalineLevel = 0f;      // Уровень адреналина
-    public float maxAdrenaline = 100f;      // Максимально возможный уровень адреналина
-    public float recoveryRate = 1f;         // Скорость снижения адреналина во время покоя
-    public float selfHarmCost = 10f;        // Стоимость потери ХП ради увеличения адреналина
+    [SerializeField] private float adrenalineLevel = 0f;
+    [SerializeField] private float maxAdrenaline = 100f;
+    [SerializeField] private float recoveryRate = 1f;
+    [SerializeField] private float selfHarmCost = 10f;
 
-    public float lowAdrenalineThreshold = 20f;     // Граница низкого уровня адреналина
-    public float highAdrenalineThreshold = 70f;    // Граница высокого уровня адреналина
-    public float overdoseThreshold = 100f;         // Граница чрезмерно высокого уровня адреналина
+    [SerializeField] private float lowAdrenalineThreshold = 20f;
+    [SerializeField] private float highAdrenalineThreshold = 70f;
+    [SerializeField] private float overdoseThreshold = 100f;
 
-    public float movementSpeedBoostFactor = 1.5f;  // Коэффициент ускорения при высоком уровне адреналина
-    public float damageBoostFactor = 1.5f;         // Коэффициент усиления урона при высоком уровне адреналина
-    public float healthLossPerHit = 5f;            // Сколько HP теряется при атаке с высоким уровнем адреналина
+    [SerializeField] private float movementSpeedBoostFactor = 1.5f;
+    [SerializeField] private float damageBoostFactor = 1.5f;
+    [SerializeField] private float healthLossPerHit = 5f;
 
-    private PlayerHealth PlayerHealth;             // Скрипт системы здоровья персонажа
+    private PlayerHealth playerHealth;
+
+    public float AdrenalineLevel => adrenalineLevel;
+    public float MaxAdrenaline => maxAdrenaline;
+    public float RecoveryRate => recoveryRate;
+    public float LowAdrenalineThreshold => lowAdrenalineThreshold;
+    public float HighAdrenalineThreshold => highAdrenalineThreshold;
+    public float OverdoseThreshold => overdoseThreshold;
+    public float MovementSpeedBoostFactor => movementSpeedBoostFactor;
+    public float DamageBoostFactor => damageBoostFactor;
+    public float HealthLossPerHit => healthLossPerHit;
 
     void Start()
     {
-        PlayerHealth = GetComponent<PlayerHealth>(); // Связываем с системой здоровья
+        playerHealth = GetComponent<PlayerHealth>();
     }
 
     void Update()
@@ -33,7 +43,18 @@ public class AdrenalineSystem : MonoBehaviour
     public void GainAdrenaline(float amount)
     {
         adrenalineLevel += amount;
-        adrenalineLevel = Mathf.Min(adrenalineLevel, maxAdrenaline);
+        adrenalineLevel = Mathf.Clamp(adrenalineLevel, 0f, maxAdrenaline);
+    }
+
+    public bool ConsumeAdrenaline(float amount)
+    {
+        if (adrenalineLevel >= amount)
+        {
+            adrenalineLevel -= amount;
+            adrenalineLevel = Mathf.Clamp(adrenalineLevel, 0f, maxAdrenaline);
+            return true;
+        }
+        return false;
     }
 
     private void RecoverAdrenaline()
@@ -44,7 +65,7 @@ public class AdrenalineSystem : MonoBehaviour
 
     private bool IsInAction()
     {
-        return Input.GetKey(KeyCode.Space) || Input.GetMouseButton(0); // Проверка действий: атака или прыжок
+        return Input.GetKey(KeyCode.Space) || Input.GetMouseButton(0);
     }
 
     private void ApplyAdrenalineEffects()
@@ -64,28 +85,30 @@ public class AdrenalineSystem : MonoBehaviour
 
     private void MovementSpeedPenalty()
     {
-        GetComponent<Rigidbody2D>().gravityScale *= 0.8f; // Замедляем движение
+        // Example penalty logic (customize as needed)
+        // E.g., could set a flag for PlayerController to reduce speed
     }
 
     private void DamageReduction()
     {
-        GetComponent<MeleeAttack>().damage *= 0.8f; // Ослабляем атаку
+        // Example penalty logic (customize as needed)
     }
 
     private void BoostMovementAndDamage()
     {
-        GetComponent<Rigidbody2D>().gravityScale /= movementSpeedBoostFactor; // Ускоряем движение
-        GetComponent<MeleeAttack>().damage *= damageBoostFactor;              // Усиливаем атаку
+        // Example boost logic (customize as needed)
     }
 
     private void EnableOverdoseEffect()
     {
-        PlayerHealth.TakeDamage(healthLossPerHit);                            // Понемногу уменьшаем здоровье
+        if (playerHealth != null)
+            playerHealth.TakeDamage((int)healthLossPerHit);
     }
 
     public void SelfHarmForAdrenaline()
     {
-        PlayerHealth.TakeDamage(selfHarmCost);
-        GainAdrenaline(selfHarmCost * 2);                                    // Немного повышаем адреналин
+        if (playerHealth != null)
+            playerHealth.TakeDamage((int)selfHarmCost);
+        GainAdrenaline(selfHarmCost * 2);
     }
 }

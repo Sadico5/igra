@@ -33,6 +33,51 @@ public class EnemyController : MonoBehaviour
 
     void Update()
     {
+        // Separate logic for melee and ranged enemies
+        if (tag == "EnemyMelee")
+        {
+            // Melee-only: just move toward player, no ranged shooting
+            if (player == null)
+            {
+                FindPlayer();
+                if (player == null)
+                {
+                    rb.linearVelocity = Vector2.zero;
+                    return;
+                }
+            }
+
+            Vector2 toPlayer = player.position - transform.position;
+            float distance = toPlayer.magnitude;
+            Vector2 direction = toPlayer.normalized;
+
+            RaycastHit2D wallHit = Physics2D.Raycast(transform.position, direction, distance, wallLayerMask);
+            bool clearLineOfSight = (wallHit.collider == null);
+
+            if (distance <= detectionRadius)
+            {
+                if (!clearLineOfSight)
+                {
+                    Vector2 wallNormal = wallHit.normal;
+                    Vector2 perp = Vector2.Perpendicular(wallNormal);
+                    if (Vector2.Dot(perp, direction) < 0)
+                        perp = -perp;
+                    Vector2 steerDirection = (direction + perp * 0.5f).normalized;
+                    rb.linearVelocity = steerDirection * moveSpeed;
+                }
+                else
+                {
+                    rb.linearVelocity = direction * moveSpeed;
+                }
+            }
+            else
+            {
+                rb.linearVelocity = Vector2.zero;
+            }
+            return;
+        }
+
+        // EnemyRanged logic
         if (player == null)
         {
             FindPlayer();
@@ -43,27 +88,27 @@ public class EnemyController : MonoBehaviour
             }
         }
 
-        Vector2 toPlayer = player.position - transform.position;
-        float distance = toPlayer.magnitude;
-        Vector2 direction = toPlayer.normalized;
+        Vector2 toPlayerR = player.position - transform.position;
+        float distanceR = toPlayerR.magnitude;
+        Vector2 directionR = toPlayerR.normalized;
 
-        RaycastHit2D wallHit = Physics2D.Raycast(transform.position, direction, distance, wallLayerMask);
-        bool clearLineOfSight = (wallHit.collider == null);
+        RaycastHit2D wallHitR = Physics2D.Raycast(transform.position, directionR, distanceR, wallLayerMask);
+        bool clearLineOfSightR = (wallHitR.collider == null);
 
-        if (distance <= detectionRadius && distance > attackRange)
+        if (distanceR <= detectionRadius && distanceR > attackRange)
         {
-            if (!clearLineOfSight)
+            if (!clearLineOfSightR)
             {
-                Vector2 wallNormal = wallHit.normal;
+                Vector2 wallNormal = wallHitR.normal;
                 Vector2 perp = Vector2.Perpendicular(wallNormal);
-                if (Vector2.Dot(perp, direction) < 0)
+                if (Vector2.Dot(perp, directionR) < 0)
                     perp = -perp;
-                Vector2 steerDirection = (direction + perp * 0.5f).normalized;
+                Vector2 steerDirection = (directionR + perp * 0.5f).normalized;
                 rb.linearVelocity = steerDirection * moveSpeed;
             }
             else
             {
-                rb.linearVelocity = direction * moveSpeed;
+                rb.linearVelocity = directionR * moveSpeed;
             }
         }
         else
@@ -71,7 +116,7 @@ public class EnemyController : MonoBehaviour
             rb.linearVelocity = Vector2.zero;
         }
 
-        if (distance <= attackRange && clearLineOfSight)
+        if (tag == "EnemyRanged" && distanceR <= attackRange && clearLineOfSightR)
         {
             fireTimer += Time.deltaTime;
             if (fireTimer >= fireInterval)
